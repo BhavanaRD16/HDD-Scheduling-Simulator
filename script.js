@@ -43,9 +43,9 @@ let hitArea = null; // dynamic div for mouse/touch
 // ── Algorithm Metadata ────────────────────────────────────────
 const ALGO_INFO = {
   fcfs: {
-    label: 'First Come First Served (FCFS)',
+    label: 'First Come First Serve (FCFS)',
     subtitle: 'Simplest scheduling policy — no reordering of requests.',
-    description: `FCFS services disk requests strictly in the order they arrive in the queue. The disk head moves to each cylinder in the sequence requested, without any optimization for proximity. While conceptually straightforward and fair, FCFS can result in substantial head movement when requests are scattered across the disk.`,
+    description: `FCFS services disk requests strictly in the order they arrive in the queue. The disk head moves to each cylinder in the sequence requested, without any optimization for proximity. While conceptually straightforward and fair, FCFS can result in substantial head movement when requests are scattered across the disk.`, 
     advantages: [
       'Simple to understand and implement',
       'Every request is honored in arrival order — fully fair',
@@ -327,11 +327,11 @@ function runAlgorithm(algo, head, requests, diskSize, direction) {
 }
 
 // ── Canvas Helpers ────────────────────────────────────────────
-const CANVAS_H = 320;
+const CANVAS_H = 520;
 const PADDING_X = 60;
-const PADDING_Y = 40;
-const AXIS_Y = CANVAS_H - PADDING_Y;
-const GRAPH_TOP_Y = PADDING_Y + 30;
+const PADDING_Y = 55;
+const AXIS_Y = CANVAS_H - PADDING_Y - 28;
+const GRAPH_TOP_Y = PADDING_Y + 45;
 
 function resizeCanvas() {
   const parent = canvas.parentElement;
@@ -367,6 +367,12 @@ function drawBackground(order, minC, maxC, totalSteps) {
   ctx.fillStyle = style.getPropertyValue('--bg-base').trim() || '#070b14';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  const glow = ctx.createRadialGradient(canvas.width * 0.2, canvas.height * 0.2, 0, canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.75);
+  glow.addColorStop(0, 'rgba(59, 130, 246, 0.16)');
+  glow.addColorStop(1, 'rgba(59, 130, 246, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(PADDING_X, GRAPH_TOP_Y, canvas.width - PADDING_X * 2, AXIS_Y - GRAPH_TOP_Y);
+
   // 2. Horizontal step grid lines
   ctx.lineWidth = 1;
   ctx.textAlign = 'right';
@@ -401,7 +407,7 @@ function drawBackground(order, minC, maxC, totalSteps) {
     ctx.lineWidth = isBoundary ? 1.5 : 1;
     ctx.beginPath();
     ctx.moveTo(x, GRAPH_TOP_Y - 15);
-    ctx.lineTo(x, AXIS_Y + 15);
+    ctx.lineTo(x, AXIS_Y + 20);
     ctx.stroke();
 
     // Bottom label
@@ -410,7 +416,7 @@ function drawBackground(order, minC, maxC, totalSteps) {
     ctx.fillStyle = isBoundary ? '#3b82f6' : (isLight ? 'rgba(71, 85, 105, 0.6)' : 'rgba(148, 163, 184, 0.7)');
     ctx.font = isBoundary ? 'bold 12px Inter, sans-serif' : '11px JetBrains Mono, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(val, x, AXIS_Y + 28);
+    ctx.fillText(val, x, AXIS_Y + 32);
 
   }
 
@@ -418,8 +424,8 @@ function drawBackground(order, minC, maxC, totalSteps) {
   ctx.strokeStyle = '#3b82f6';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(PADDING_X - 5, AXIS_Y + 15);
-  ctx.lineTo(canvas.width - PADDING_X + 5, AXIS_Y + 15);
+  ctx.moveTo(PADDING_X - 5, AXIS_Y + 20);
+  ctx.lineTo(canvas.width - PADDING_X + 5, AXIS_Y + 20);
   ctx.stroke();
 
 
@@ -428,7 +434,7 @@ function drawBackground(order, minC, maxC, totalSteps) {
   ctx.fillStyle = '#94a3b8';
   ctx.font = '500 12px Inter, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Cylinder Number', canvas.width / 2, CANVAS_H - 2);
+  ctx.fillText('Cylinder Number', canvas.width / 2, AXIS_Y + 54);
 
   // Y-axis label
   ctx.save();
@@ -591,9 +597,11 @@ async function animate(order, algoName, seekTotal, diskSize = null) {
 
     ctx.strokeStyle = segColor;
     ctx.lineWidth = 2.5;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
     ctx.setLineDash([]);
-
-
 
     let lastX = x1, lastY = y1;
 
@@ -681,21 +689,20 @@ function drawHighlightPoint(pt) {
   const color = pt.step === 0 ? '#a855f7'
     : pt.step === drawnPoints.length - 1 ? '#22c55e'
       : '#3b82f6';
-  // outer glow ring
-  hCtx.shadowColor = color; hCtx.shadowBlur = 18;
-  hCtx.strokeStyle = `${color}88`;
-  hCtx.lineWidth = 2.5;
+
+  hCtx.lineWidth = 3;
+  hCtx.lineCap = 'round';
+  hCtx.lineJoin = 'round';
+  hCtx.shadowColor = 'transparent';
+  hCtx.strokeStyle = color;
   hCtx.beginPath();
   hCtx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
   hCtx.stroke();
-  // inner bright ring
-  hCtx.shadowBlur = 8;
-  hCtx.strokeStyle = color;
-  hCtx.lineWidth = 2;
+
+  hCtx.fillStyle = color;
   hCtx.beginPath();
-  hCtx.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
-  hCtx.stroke();
-  hCtx.shadowBlur = 0;
+  hCtx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+  hCtx.fill();
 }
 
 function showTooltip(pt) {
@@ -1009,6 +1016,10 @@ if (themeToggleBtn) {
 
       // Re-draw segments and dots
       ctx.lineWidth = 2.5;
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
       ctx.setLineDash([]);
       for (let i = 1; i < drawnPoints.length; i++) {
         const pt = drawnPoints[i];
